@@ -1,6 +1,4 @@
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.concurrent.Executors;
@@ -10,10 +8,10 @@ import java.util.concurrent.TimeUnit;
 public class Controller {
 
     private final int BUFFER = 2;
+    private final long REFRESH_PERIOD = 1L;
 
     private final MainFrame mainFrame;
     private final JPanel contentPane;
-
     private final JButton btnOff;
     private final JButton btnOne;
     private final JButton btnTwo;
@@ -24,6 +22,8 @@ public class Controller {
     private final JLabel lblOnOff;
     private final JLabel lblFan;
     private final JLabel lblHum;
+    private final Color bgOn = new Color(95, 158, 160);
+    private final Color bgOff = new Color(250, 128, 114);
 
     private boolean onOff;
     private int fan;
@@ -31,9 +31,6 @@ public class Controller {
 
     private boolean init = false;
     private boolean initAuto = false;
-
-    private Color bgOn = new Color(95, 158, 160);
-    private Color bgOff = new Color(250, 128, 114);
 
     public Controller() {
         mainFrame = new MainFrame();
@@ -54,44 +51,36 @@ public class Controller {
             btns[i].addActionListener(e -> setFan(finalI));
         }
 
-        spinner.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                initAuto = false;
-            }
-        });
+        spinner.addChangeListener(e -> initAuto = false);
 
         ScheduledExecutorService ses = Executors.newScheduledThreadPool(5);
-        ses.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                update();
-                if (tglbtnAuto.isSelected()) {
-                    // auto humidity activated
-                    int target = (int) spinner.getValue();
-                    int dif = target - hum;
+        ses.scheduleAtFixedRate(() -> {
+            update();
+            if (tglbtnAuto.isSelected()) {
+                // auto humidity activated
+                int target = (int) spinner.getValue();
+                int dif = target - hum;
 
-                    if (!initAuto) {
-                        if (dif < BUFFER && dif > -BUFFER) {
-                            setFan(dif > 0 ? 1 : 0);
-                        }
-                        initAuto = true;
+                if (!initAuto) {
+                    if (dif < BUFFER && dif > -BUFFER) {
+                        setFan(dif > 0 ? 1 : 0);
                     }
-
-                    if (dif > 15) {
-                        setFan(3);
-                    } else if (dif > BUFFER) {
-                        setFan(2);
-                    } else if (dif >= BUFFER) {
-                        setFan(1);
-                    } else if (dif <= -BUFFER) {
-                        setFan(0);
-                    }
-                } else {
-                    initAuto = false;
+                    initAuto = true;
                 }
+
+                if (dif > 15) {
+                    setFan(3);
+                } else if (dif > BUFFER) {
+                    setFan(2);
+                } else if (dif >= BUFFER) {
+                    setFan(1);
+                } else if (dif <= -BUFFER) {
+                    setFan(0);
+                }
+            } else {
+                initAuto = false;
             }
-        }, 0, 1, TimeUnit.SECONDS);
+        }, 0, REFRESH_PERIOD, TimeUnit.SECONDS);
 
         display();
     }
