@@ -73,7 +73,7 @@ public class Tool {
         try {
             Runtime runtime = Runtime.getRuntime();
             Process process = runtime.exec(cmd);
-            String outStr = getStreamStr(process.getInputStream());
+            getStreamStr(process.getInputStream());
             process.destroy();
         } catch (IOException e) {
             e.printStackTrace();
