@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.concurrent.Executors;
@@ -28,7 +30,7 @@ public class Controller {
     private int hum;
 
     private boolean init = false;
-    private boolean rising = true;
+    private boolean initAuto = false;
 
     private Color bgOn = new Color(95, 158, 160);
     private Color bgOff = new Color(250, 128, 114);
@@ -52,6 +54,13 @@ public class Controller {
             btns[i].addActionListener(e -> setFan(finalI));
         }
 
+        spinner.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                initAuto = false;
+            }
+        });
+
         ScheduledExecutorService ses = Executors.newScheduledThreadPool(5);
         ses.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -60,26 +69,26 @@ public class Controller {
                 if (tglbtnAuto.isSelected()) {
                     // auto humidity activated
                     int target = (int) spinner.getValue();
-
                     int dif = target - hum;
 
-                    if (rising) {
-                        if (dif > 15) {
-                            setFan(3);
-                        } else if (dif > BUFFER) {
-                            setFan(2);
-                        } else if (dif > -BUFFER) {
-                            setFan(1);
-                        } else {
-                            setFan(0);
-                            rising = false;
+                    if (!initAuto) {
+                        if (dif < BUFFER && dif > -BUFFER) {
+                            setFan(dif > 0 ? 1 : 0);
                         }
-                    } else {
-                        if (dif >= BUFFER) {
-                            setFan(1);
-                            rising = true;
-                        }
+                        initAuto = true;
                     }
+
+                    if (dif > 15) {
+                        setFan(3);
+                    } else if (dif > BUFFER) {
+                        setFan(2);
+                    } else if (dif >= BUFFER) {
+                        setFan(1);
+                    } else if (dif <= -BUFFER) {
+                        setFan(0);
+                    }
+                } else {
+                    initAuto = false;
                 }
             }
         }, 0, 1, TimeUnit.SECONDS);
